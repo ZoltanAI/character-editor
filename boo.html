@@ -172,6 +172,7 @@
 					if (wpp === null || wpp.length < 1) return null;
 
 					let boo = wpp;
+					boo = boo.replaceAll(/\\"/gi, '"');
 					boo = boo.replaceAll(/([a-z]+)\((.+?)\)/gi, '$2');
 					boo = boo.replaceAll(/[\[\]\(\){}"]/g, '');
 					boo = boo.replaceAll('\r\n', ' + ');
