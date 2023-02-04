@@ -666,7 +666,8 @@
 				Tavern: 'TavernAI',
 				Kobold: 'KoboldAI',
 				Pygmalion: 'Pygmalion',
-				Cai: 'CharacterAI Dump'
+				CaiDefinition: 'CharacterAI Definition',
+				CaiHistory: 'CharacterAI History'
 			};
 
 			class Character {
@@ -692,7 +693,8 @@
 
 					if (checkProperties(['name', 'description', 'personality', 'scenario', 'first_mes', 'mes_example'])) this.formats.push(JsonFormats.Tavern);
 					if (checkProperties(['char_name', 'char_persona', 'world_scenario', 'char_greeting', 'example_dialogue'])) this.formats.push(JsonFormats.Pygmalion);
-					if (checkProperties(['name', 'title', 'description', 'greeting', 'definition'], json.character)) this.formats.push(JsonFormats.Cai);
+					if (json.character && checkProperties(['name', 'title', 'description', 'greeting', 'definition'], json.character)) this.formats.push(JsonFormats.CaiDefinition);
+					if (json.info && json.info.character && checkProperties(['name', 'title', 'description', 'greeting'], json.info.character)) this.formats.push(JsonFormats.CaiHistory);
 				}
 
 				constructor(json) {
@@ -702,27 +704,33 @@
 
 					this.#setProperty('name', json, 'name'); // TavernAI
 					this.#setProperty('name', json, 'char_name'); // Pygmalion
-					this.#setProperty('name', json.character, 'name'); // CIA
+					if (json.character) this.#setProperty('name', json.character, 'name'); // CIA
+					if (json.info && json.info.character) this.#setProperty('name', json.info.character, 'name'); // CIA
 
 					this.#setProperty('description', json, 'description'); // TavernAI
-					this.#setProperty('description', json.character, 'title'); // CIA
+					if (json.character) this.#setProperty('description', json.character, 'title'); // CIA
+					if (json.info && json.info.character) this.#setProperty('description', json.info.character, 'title'); // CIA
 
 					this.#setProperty('personality', json, 'personality'); // TavernAI
 					this.#setProperty('personality', json, 'char_persona'); // Pygmalion // TODO: personality or description?
-					this.#setProperty('personality', json.character, 'description'); // CIA
+					if (json.character) this.#setProperty('personality', json.character, 'description'); // CIA
+					if (json.info && json.info.character) this.#setProperty('personality', json.info.character, 'description'); // CIA
 
 					this.#setProperty('scenario', json, 'scenario'); // TavernAI
 					this.#setProperty('scenario', json, 'world_scenario'); // Pygmalion
 
 					this.#setProperty('greeting', json, 'first_mes'); // TavernAI
 					this.#setProperty('greeting', json, 'char_greeting'); // Pygmalion
-					this.#setProperty('greeting', json.character, 'greeting'); // CIA
+					if (json.character) this.#setProperty('greeting', json.character, 'greeting'); // CIA
+					if (json.info && json.info.character) this.#setProperty('greeting', json.info.character, 'greeting'); // CIA
 
 					this.#setProperty('examples', json, 'mes_example'); // TavernAI
 					this.#setProperty('examples', json, 'example_dialogue'); // Pygmalion
-					this.#setProperty('examples', json.character, 'definition'); // CIA
+					if (json.character) this.#setProperty('examples', json.character, 'definition'); // CIA
+					if (json.info && json.info.character) this.#setProperty('examples', json.info.character, 'definition'); // CIA
 
-					if (this.formats.includes(JsonFormats.Cai)) this.metadata.cai = new CaiMetadata(json.character);
+					if (this.formats.includes(JsonFormats.CaiDefinition)) this.metadata.cai = new CaiMetadata(json.character);
+					if (this.formats.includes(JsonFormats.CaiHistory)) this.metadata.cai = new CaiMetadata(json.info.character);
 				}
 			}
 
