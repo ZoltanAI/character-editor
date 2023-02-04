@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en" class="h-100">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="application-name" content="W++ to Boostyle Converter">
+		<meta name="description" content="Quick and dirty W++ to Boostyle format converter">
+		<meta name="version" content="0.1.0">
+		<meta name="revision" content="2023-02-04">
+		<meta name="author" content="ZoltanAI">
+		<meta name="contact" content="Zoltan#8287 on Discord">
+		<meta name="license" content="GNU-GPLv3">
+		<meta name="twitter:card" content="summary">
+		<meta property="og:title" content="W++ to Boostyle Converter">
+		<meta property="og:description" content="Quick and dirty W++ to Boostyle format converter">
+		<meta property="og:url" content="https://zoltanai.github.io/character-editor/boo.html">
+		<meta property="og:type" content="website">
+		<title>W++ to Boostyle Converter</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+		<style>
+			.tooltip {
+				--bs-tooltip-max-width: 500px;
+			}
+
+			textarea {
+				resize: none;
+			}
+		</style>
+	</head>
+
+	<body class="d-flex flex-column h-100 bg-light">
+		<main class="flex-shrink-0">
+			<div class="container py-4">
+				<h1 class="display-1 text-center">W++ to Boostyle Converter</h1>
+
+				<div class="container my-5 text-center">
+					<div class="alert alert-warning alert-dismissible show" role="alert">
+						None of your data is uploaded or shared, this entire webpage runs locally in your browser!
+						<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+					</div>
+				</div>
+
+				<div class="container">
+					<form>
+						<div class="mb-5">
+							<label for="input" class="form-label fw-semibold">W++ Input</label>
+							<textarea class="form-control auto-size" id="input" rows="1"></textarea>
+						</div>
+
+						<div class="mb-3">
+							<label for="output" class="form-label fw-semibold">Boostyle Output</label>
+							<textarea class="form-control auto-size" id="output" rows="1"></textarea>
+						</div>
+					</form>
+				</div>
+			</div>
+		</main>
+
+		<footer class="footer mt-auto p-3 bg-white">
+			<div class="container">
+				<div class="row text-muted user-select-none">
+					<div class="col">
+						<span data-bs-toggle="tooltip" data-bs-title="Get in contact on Discord for any suggestions or help!">Made with &#128166; by <code class="user-select-all">Zoltan#8287</code></span>
+					</div>
+
+					<div class="col text-center fw-bold text-danger">
+						Work in Progress!
+					</div>
+
+					<div class="col text-end">
+						Version 0.1
+					</div>
+				</div>
+			</div>
+		</footer>
+
+		<div id="error" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5 text-danger"><i class="bi bi-exclamation-octagon"></i> Error Detected</h1>
+					</div>
+
+					<div class="modal-body">
+						<p>An error has occurred, sorry!</p>
+						<p>This tool is still in development and you can help improve it by sending the error message below and your file (if applicable) to <code class="user-select-all">Zoltan#8287</code> on Discord!</p>
+						<p>Please copy the error from the box below:</p>
+						<pre class="mb-0 p-3 border bg-light"><code id="error-message" class="user-select-all">Whenever you need to, be sure to use margin utilities to keep things nice and tidy.</code></pre>
+					</div>
+
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+		<script>
+			'use strict';
+
+			class Exception {
+				static modal = new bootstrap.Modal('#error');
+
+				static show(ex) {
+					console.error(ex);
+
+					if (ex.fileName && ex.cause && ex.cause.fileName && ex.fileName === ex.cause.fileName) delete ex.cause.fileName;
+
+					document.getElementById('error-message').innerText = JSON.stringify(ex, Object.getOwnPropertyNames(ex), 4);
+
+					this.modal.show();
+				}
+			}
+
+			class Tooltips {
+				static FileDate;
+				static Footer;
+
+				static #create(el) {
+					return bootstrap.Tooltip.getOrCreateInstance(el);
+				}
+
+				constructor() {
+					const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+					Tooltips.Footer = Tooltips.#create(tooltips[0]);
+				}
+			}
+
+			class TextareaAutoSize {
+				static Update(el) {
+					if (el === undefined) {
+						document.querySelectorAll('textarea').forEach(el => {
+							this.Update(el);
+						});
+
+						return;
+					}
+
+					const style = getComputedStyle(el, null);
+
+					el.style.height = parseInt(style['fontSize']) + 'px';
+					el.style.height = (parseInt(el.scrollHeight) + (parseInt(style['borderTopWidth']) + parseInt(style['borderBottomWidth']) || 0)) + 'px';
+				}
+
+				constructor() {
+					document.querySelectorAll('textarea').forEach(el => {
+						TextareaAutoSize.Update(el);
+
+						el.addEventListener('input', e => {
+							TextareaAutoSize.Update(e.target);
+						});
+					});
+				}
+			}
+
+			// Entrypoint
+			(async () => {
+				const tooltips = new Tooltips();
+				const textareaAutoSize = new TextareaAutoSize();
+
+				// Disable form submission
+				document.querySelectorAll('form').forEach(el => {
+					el.addEventListener('submit', e => {
+						e.preventDefault();
+						e.stopPropagation();
+					});
+				});
+
+				// Quick and dirty conversion
+				const convert = (wpp) => {
+					if (wpp === null || wpp.length < 1) return null;
+
+					let boo = wpp;
+					boo = boo.replaceAll(/([a-z]+)\((.+?)\)/gi, '$2');
+					boo = boo.replaceAll(/[\[\]\(\){}"]/g, '');
+					boo = boo.replaceAll('\r\n', ' + ');
+					boo = boo.replaceAll('\n', ' + ');
+					boo = boo.replaceAll('  ', ' ');
+					boo = boo.replaceAll('+ +', '+');
+					boo = boo.trim().replace(/^\++|\++$/g, '');
+
+					return boo.trim();
+				};
+
+				document.getElementById('input').addEventListener('input', () => {
+					try {
+						document.getElementById('output').value = convert(document.getElementById('input').value.trim() || null);
+
+						TextareaAutoSize.Update();
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
+
+				document.getElementById('input').focus();
+			})();
+		</script>
+	</body>
+</html>
