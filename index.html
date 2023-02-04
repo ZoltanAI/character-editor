@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en" class="h-100">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="application-name" content="AI Character Editor">
+		<meta name="description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
+		<meta name="version" content="0.1.0">
+		<meta name="revision" content="2023-02-04">
+		<meta name="author" content="ZoltanAI">
+		<meta name="contact" content="Zoltan#8287 on Discord">
+		<meta name="license" content="GNU-GPLv3">
+		<meta name="twitter:card" content="summary">
+		<meta property="og:title" content="AI Character Editor">
+		<meta property="og:description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
+		<meta property="og:url" content="https://zoltanai.github.io/character-editor/">
+		<meta property="og:type" content="website">
+		<title>AI Character Editor</title>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+		<style>
+			.accordion-button:disabled {
+				cursor: not-allowed;
+			}
+
+			.bg-drag {
+				background-color: var(--bs-accordion-active-bg);
+			}
+
+			.border-dotted {
+				--bs-border-style: dotted;
+			}
+
+			.tooltip {
+				--bs-tooltip-max-width: 500px;
+			}
+
+			textarea {
+				resize: none;
+			}
+		</style>
+	</head>
+
+	<body class="d-flex flex-column h-100 bg-light">
+		<main class="flex-shrink-0">
+			<div class="container py-4">
+				<h1 class="display-1 text-center">AI Character Editor</h1>
+				<p class="my-0 lead text-center">Create, edit and convert to and from <a href="https://beta.character.ai/" target="_blank">CharacterAI</a> <a href="https://github.com/0x000011b/characterai-dumper" target="_blank">dumps</a>, <a href="https://github.com/PygmalionAI/gradio-ui" target="_blank">Pygmalion</a>, <a href="https://github.com/KoboldAI/KoboldAI-Client" target="_blank">KoboldAI</a> and <a href="https://github.com/TavernAI/TavernAI" target="_blank">TavernAI</a> formats easily</p>
+				<p class="lead text-center">Supports both JSON and image files</p>
+
+				<div class="container my-5 text-center">
+					<div class="alert alert-warning alert-dismissible show" role="alert">
+						None of your data is uploaded or shared, this entire webpage runs locally in your browser!
+						<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+					</div>
+				</div>
+
+				<div class="container">
+					<div id="accordion" class="accordion border-0">
+						<div class="accordion-item">
+							<h2 class="accordion-header">
+								<button class="accordion-button shadow-none fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-load">
+									<i class="bi bi-file-earmark-plus flex-shrink-0 me-2"></i> Load
+								</button>
+							</h2>
+
+							<div id="accordion-load" class="accordion-collapse collapse show" data-bs-parent="#accordion">
+								<div class="accordion-body text-center p-0">
+									<div class="container">
+										<div class="row">
+											<div class="col-6 py-5 position-relative">
+												<form id="load-form">
+													<i class="bi bi-cloud-upload display-2 text-primary"></i>
+
+													<p class="my-2">Drag &amp; drop a JSON or image file here<br><i>or</i></p>
+
+													<label for="load" class="btn btn-primary stretched-link">Choose file...</label>
+													<input id="load" class="position-absolute invisible" type="file" accept="application/json, image/png">
+												</form>
+											</div>
+
+											<div class="col-6 py-5 position-relative border-start">
+												<i class="bi bi-file-earmark-plus display-2 text-primary"></i>
+
+												<p class="my-2">Start from scratch and create a new character<br><br></p>
+
+												<button id="create" type="button" class="btn btn-primary stretched-link">New character</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="accordion-item">
+							<h2 class="accordion-header">
+								<button class="accordion-button collapsed shadow-none fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-edit" disabled autocomplete="off">
+									<i class="bi bi-pencil flex-shrink-0 me-2"></i> Edit
+								</button>
+							</h2>
+
+							<div id="accordion-edit" class="accordion-collapse collapse" data-bs-parent="#accordion">
+								<div class="accordion-body">
+									<div class="container">
+										<div class="row">
+											<div id="edit-details" class="col-12 col-md-5 col-lg-4 col-xl-3">
+												<figure class="figure w-100 text-center">
+													<svg id="edit-image-svg" class="img-thumbnail w-100 bg-light" xmlns="http://www.w3.org/2000/svg" width="5" height="6" viewBox="0 0 16 16" fill="var(--bs-gray-200)">
+														<path d="M8.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+														<path d="M12 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM3 2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v8l-2.083-2.083a.5.5 0 0 0-.76.063L8 11 5.835 9.7a.5.5 0 0 0-.611.076L3 12V2z" />
+													</svg>
+
+													<img id="edit-image" class="img-thumbnail w-100 bg-light d-none" src="#" alt="">
+													<figcaption id="edit-image-details" class="figure-caption"></figcaption>
+												</figure>
+
+												<div id="edit-metadata-file" class="container my-4 p-3 border rounded d-none">
+													<div class="row text-center">
+														<h3 class="h5">Original File</h3>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-4">
+															Filename
+														</div>
+														<div class="col-12 text-end">
+															<em id="edit-file-filename" class="text-break text-wrap"></em>
+														</div>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-4">
+															Format
+														</div>
+														<div class="col-12 text-end">
+															<em id="edit-file-format" class="text-break text-wrap"></em>
+														</div>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-3">
+															Size
+														</div>
+														<div class="col text-end">
+															<em id="edit-file-size"></em>
+														</div>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-6">
+															Last Modified
+														</div>
+														<div class="col text-end">
+															<em class="border-bottom border-dotted border-primary"><time id="edit-file-modified" datetime="" data-bs-toggle="tooltip" data-bs-title=" "></time></em>
+														</div>
+													</div>
+												</div>
+
+												<div id="edit-metadata-cai" class="container my-4 p-3 border rounded d-none">
+													<div class="row text-center">
+														<h3 class="h5">CharacterAI Metadata</h3>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-12 text-center">
+															<a id="edit-metadata-cai-link" href="#" target="_blank"></a>
+														</div>
+													</div>
+
+													<div id="edit-metadata-cai-image-container" class="row mt-3 d-none">
+														<div class="col-12 text-center">
+															<img id="edit-metadata-cai-image" class="img-thumbnail w-100 d-block bg-light" src="#" alt="">
+														</div>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-4">
+															Visibility
+														</div>
+														<div class="col text-end text-capitalize">
+															<em id="edit-metadata-cai-visibility"></em>
+														</div>
+													</div>
+
+													<div class="row mt-3">
+														<div class="col-7">
+															Interaction Count
+														</div>
+														<div class="col text-end">
+															<em id="edit-metadata-cai-interactions"></em>
+														</div>
+													</div>
+												</div>
+											</div>
+
+											<div class="col-12 col-md-7 col-lg-8 col-xl-9">
+												<form class="needs-validation" autocomplete="off" novalidate>
+													<div class="mb-3">
+														<label for="edit-name" class="form-label fw-semibold">Name</label>
+														<input type="text" class="form-control" id="edit-name" required>
+														<div class="invalid-feedback">
+															Name is required by all formats
+														</div>
+													</div>
+
+													<div class="mb-3">
+														<label for="edit-description" class="form-label fw-semibold">Description</label>
+														<textarea class="form-control auto-size" id="edit-description" rows="1"></textarea>
+													</div>
+
+													<div class="mb-3">
+														<label for="edit-personality" class="form-label fw-semibold">Personality</label>
+														<textarea class="form-control auto-size" id="edit-personality" rows="1"></textarea>
+													</div>
+
+													<div class="mb-3">
+														<label for="edit-scenario" class="form-label fw-semibold">Scenario</label>
+														<textarea class="form-control auto-size" id="edit-scenario" rows="1"></textarea>
+													</div>
+
+													<div class="mb-3">
+														<label for="edit-greeting" class="form-label fw-semibold">Greeting Message</label>
+														<textarea class="form-control auto-size" id="edit-greeting" rows="1"></textarea>
+													</div>
+
+													<div class="mb-3">
+														<label for="edit-examples" class="form-label fw-semibold">Example Messages</label>
+														<textarea class="form-control auto-size" id="edit-examples" rows="1"></textarea>
+													</div>
+												</form>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="accordion-item">
+							<h2 class="accordion-header">
+								<button class="accordion-button collapsed shadow-none fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#accordion-export" disabled autocomplete="off">
+									<i class="bi bi-box-arrow-down flex-shrink-0 me-2"></i> Export
+								</button>
+							</h2>
+
+							<div id="accordion-export" class="accordion-collapse collapse" data-bs-parent="#accordion">
+								<div class="accordion-body text-center">
+									<p class="fs-4 mt-3 mb-4">More features and formats coming soon</p>
+
+									<button id="export" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Pygmalion JSON</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<footer class="footer mt-auto p-3 bg-white">
+			<div class="container">
+				<div class="row text-muted user-select-none">
+					<div class="col">
+						<span data-bs-toggle="tooltip" data-bs-title="Get in contact on Discord for any suggestions or help!">Made with &#128166; by <code class="user-select-all">Zoltan#8287</code></span>
+					</div>
+
+					<div class="col text-center fw-bold text-danger">
+						Work in Progress!
+					</div>
+
+					<div class="col text-end">
+						Version 0.1
+					</div>
+				</div>
+			</div>
+		</footer>
+
+		<div id="error" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h1 class="modal-title fs-5 text-danger"><i class="bi bi-exclamation-octagon"></i> Error Detected</h1>
+					</div>
+
+					<div class="modal-body">
+						<p>An error has occurred, sorry!</p>
+						<p>This tool is still in development and you can help improve it by sending the error message below and your file (if applicable) to <code class="user-select-all">Zoltan#8287</code> on Discord!</p>
+						<p>Please copy the error from the box below:</p>
+						<pre class="mb-0 p-3 border bg-light"><code id="error-message" class="user-select-all">Whenever you need to, be sure to use margin utilities to keep things nice and tidy.</code></pre>
+					</div>
+
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+		<script>
+			'use strict';
+
+			class Exception {
+				static modal = new bootstrap.Modal('#error');
+
+				static show(ex) {
+					console.error(ex);
+
+					if (ex.fileName && ex.cause && ex.cause.fileName && ex.fileName === ex.cause.fileName) delete ex.cause.fileName;
+
+					document.getElementById('error-message').innerText = JSON.stringify(ex, Object.getOwnPropertyNames(ex), 4);
+
+					this.modal.show();
+				}
+			}
+
+			class Format {
+				static Bytes(bytes, decimals = 2) {
+					if (bytes == 0) return '0 Bytes';
+					if (bytes == 1) return '1 Byte';
+
+					const k = 1024;
+					const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+					return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals)) + ' ' + ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'][i];
+				}
+
+				static DateTime(date) {
+					return new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeStyle: 'medium', hour12: true }).format(date);
+				}
+
+				static Ago(date) {
+					const DIVISIONS = [
+						{ amount: 60, name: 'seconds' },
+						{ amount: 60, name: 'minutes' },
+						{ amount: 24, name: 'hours' },
+						{ amount: 7, name: 'days' },
+						{ amount: 4.34524, name: 'weeks' },
+						{ amount: 12, name: 'months' },
+						{ amount: Number.POSITIVE_INFINITY, name: 'years' }
+					];
+
+					let duration = (date - new Date()) / 1000;
+
+					for (let i = 0; i <= DIVISIONS.length; i++) {
+						const division = DIVISIONS[i];
+
+						if (Math.abs(duration) < division.amount) {
+							return new Intl.RelativeTimeFormat(undefined, {
+								numeric: 'auto'
+							}).format(Math.round(duration), division.name);
+						}
+
+						duration /= division.amount;
+					}
+				}
+
+				static Ratio(width, height) {
+					return height == 0 ? width : Format.Ratio(height, width % height);
+				}
+			}
+
+			class Accordion {
+				#opening = false;
+
+				static Load;
+				static Edit;
+				static Export;
+
+				static #create(el) {
+					return bootstrap.Collapse.getOrCreateInstance(el, {
+						toggle: false
+					});
+				}
+
+				static lock(lock = true) {
+					document.querySelectorAll('.accordion-header button').forEach(el => { el.disabled = lock; });
+				}
+
+				constructor() {
+					const collapses = document.querySelectorAll('.collapse');
+					Accordion.Load = Accordion.#create(collapses[0]);
+					Accordion.Edit = Accordion.#create(collapses[1]);
+					Accordion.Export = Accordion.#create(collapses[2]);
+
+					document.querySelectorAll('.accordion-collapse').forEach(el => {
+						el.addEventListener('hide.bs.collapse', e => {
+							if (!this.#opening) {
+								event.preventDefault();
+								event.stopPropagation();
+							} else {
+								this.#opening = false;
+							}
+						});
+
+						el.addEventListener('show.bs.collapse', e => {
+							this.#opening = true;
+						});
+					});
+				}
+			}
+
+			class Tooltips {
+				static FileDate;
+				static Footer;
+
+				static #create(el) {
+					return bootstrap.Tooltip.getOrCreateInstance(el);
+				}
+
+				constructor() {
+					const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+					Tooltips.FileDate = Tooltips.#create(tooltips[0]);
+					Tooltips.Footer = Tooltips.#create(tooltips[1]);
+				}
+			}
+
+			class TextareaAutoSize {
+				static Update(el) {
+					if (el === undefined) {
+						document.querySelectorAll('textarea').forEach(el => {
+							this.Update(el);
+						});
+
+						return;
+					}
+
+					const style = getComputedStyle(el, null);
+
+					el.style.height = parseInt(style['fontSize']) + 'px';
+					el.style.height = (parseInt(el.scrollHeight) + (parseInt(style['borderTopWidth']) + parseInt(style['borderBottomWidth']) || 0)) + 'px';
+				}
+
+				constructor() {
+					document.querySelectorAll('textarea').forEach(el => {
+						TextareaAutoSize.Update(el);
+
+						el.addEventListener('input', e => {
+							TextareaAutoSize.Update(e.target);
+						});
+					});
+				}
+			}
+
+			class Png {
+				// Read PNG format chunk
+				static #readChunk(arr, index) {
+					const getNextInt32 = () => {
+						const map = new Uint8Array(4).map(() => arr[index++]).reverse();
+						return new Int32Array(map.buffer)[0];
+					};
+
+					const length = getNextInt32();
+
+					let type = "";
+					for (let i = 0; i < 4; i++) {
+						type += String.fromCharCode(arr[index++]);
+					}
+
+					const data = arr.slice(index, index + length);
+
+					index += length;
+
+					const crc = getNextInt32();
+
+					return {
+						length,
+						type,
+						data,
+						crc
+					};
+				}
+
+				// Read PNG file and extract chunks
+				static #getChunks(arr) {
+					if (arr[0] !== 0x89 || arr[1] !== 0x50 || arr[2] !== 0x4E || arr[3] !== 0x47 || arr[4] !== 0x0D || arr[5] !== 0x0A || arr[6] !== 0x1A || arr[7] !== 0x0A) throw new Error('Invalid PNG header');
+
+					const chunks = [];
+					let index = 8;
+
+					while (index < arr.length) {
+						const chunk = Png.#readChunk(arr, index);
+						chunks.push(chunk);
+						index += chunk.length + 4 * 3;
+					}
+
+					if (chunks.length < 1 || chunks[chunks.length - 1].type !== 'IEND') throw new Error('PNG file ended prematurely, missing IEND header');
+
+					return chunks;
+				}
+
+				// Parse and extract PNG tEXt chunk
+				static #decodeText(data) {
+					let naming = true;
+					let keyword = '';
+					let text = '';
+
+					for (let i = 0; i < data.length; i++) {
+						const code = data[i];
+
+						if (naming) {
+							if (code) {
+								keyword += String.fromCharCode(code);
+							} else {
+								naming = false;
+							}
+						} else {
+							if (code) {
+								text += String.fromCharCode(code);
+							} else {
+								throw new Error('Invalid NULL character found, 0x00 character is not permitted in tEXt content');
+							}
+						}
+					}
+
+					return {
+						keyword,
+						text
+					};
+				}
+
+				// Parse PNG file and return decoded "chara" base64 text metadata value
+				static Parse(arrayBuffer) {
+					const chunks = Png.#getChunks(new Uint8Array(arrayBuffer));
+
+					const text = chunks.filter(c => c.type === 'tEXt').map(c => Png.#decodeText(c.data));
+					if (text.length < 1) throw new Error('No PNG text fields found in file');
+
+					const chara = text.find(t => t.keyword === 'chara');
+					if (chara === undefined) throw new Error('No PNG text field named "chara" found in file');
+
+					try {
+						return new TextDecoder().decode(Uint8Array.from(atob(chara.text), c => c.charCodeAt(0)));
+					} catch (e) {
+						throw new Error('Error parsing "chara" field as base64', {
+							cause: e
+						});
+					}
+				}
+			}
+
+			class Loader {
+				// Create image element and wait for it to load
+				static #createImage(src) {
+					return new Promise((resolve, reject) => {
+						const image = new Image();
+						image.onload = () => resolve(image);
+						image.onerror = reject;
+						image.src = src;
+					});
+				}
+
+				// Parse JSON from PNG metadata
+				static #parsePng(arrayBuffer) {
+					const text = Png.Parse(arrayBuffer);
+
+					try {
+						return JSON.parse(text);
+					} catch (e) {
+						throw new Error('Error parsing JSON', {
+							cause: e
+						});
+					}
+				}
+
+				// Handle file load
+				static async Parse(file) {
+					let json = null;
+					let image = null;
+
+					if (file.type === 'application/json') {
+						try {
+							json = JSON.parse(await file.text());
+						} catch (e) {
+							throw new Error('Error parsing JSON', {
+								cause: e
+							});
+						}
+					} else if (file.type === 'image/png') {
+						try {
+							image = await Loader.#createImage(URL.createObjectURL(file));
+						} catch (e) {
+							throw new Error('Error loading image', {
+								cause: e
+							});
+						}
+
+						try {
+							json = Loader.#parsePng(await file.arrayBuffer());
+						} catch (e) {
+							throw new Error('Error parsing embedded JSON', {
+								cause: e
+							});
+						}
+					} else {
+						throw new Error('Bad file type');
+					}
+
+					return {
+						json,
+						image
+					};
+				}
+			}
+
+			class CaiMetadata {
+				id;
+				visibility;
+				copyable;
+				avatar;
+				imageGeneration;
+				avatarGenerationPrompt;
+				categories; // TODO: Format
+				interactionCount;
+				voiceId;
+
+				#setProperty(property, object, key) {
+					try {
+						if (!object || !object.hasOwnProperty(key)) return;
+
+						const value = object[key];
+
+						if (value === undefined || value === null) return;
+						if (Array.isArray(value) && value.length < 1) return;
+						if ((typeof value === 'string' || value instanceof String) && (!value || !value.trim())) return;
+
+						if (typeof value === 'string' || value instanceof String) {
+							this[property] = value.trim();
+						} else {
+							this[property] = value;
+						}
+					} catch (e) {
+						console.error('CaiMetadata.#setProperty', e, property, object, key);
+					}
+				}
+
+				constructor(json) {
+					if (!json) return;
+
+					this.#setProperty('id', json, 'external_id');
+					this.#setProperty('visibility', json, 'visibility');
+					this.#setProperty('copyable', json, 'copyable');
+					this.#setProperty('avatar', json, 'avatar_file_name');
+					this.#setProperty('imageGeneration', json, 'img_gen_enabled');
+					this.#setProperty('avatarGenerationPrompt', json, 'base_img_prompt');
+					this.#setProperty('categories', json, 'categories');
+					this.#setProperty('interactionCount', json, 'num_interactions');
+					this.#setProperty('voiceId', json, 'voice_id');
+
+					try {
+						// Assert
+						if (!json.external_id) console.warn('CaiMetadata !external_id');
+						if (json.name !== json.participant__name) console.warn('CaiMetadata name', json.name, json.participant__name);
+						if (json.visibility !== 'PRIVATE' && json.visibility !== 'UNLISTED' && json.visibility !== 'PUBLIC') console.warn('CaiMetadata visibility', json.visibility);
+						if (json.copyable !== true && json.copyable !== false) console.warn('CaiMetadata copyable', json.copyable);
+						if (!json.identifier.startsWith('id:')) console.warn('CaiMetadata identifier', json.identifier);
+						if (!Array.isArray(json.songs) || json.songs.length > 0) console.warn('CaiMetadata songs', json.songs);
+						if (json.img_gen_enabled !== true && json.img_gen_enabled !== false) console.warn('CaiMetadata img_gen_enabled', json.img_gen_enabled);
+						if (json.img_prompt_regex !== '') console.warn('CaiMetadata img_prompt_regex', json.img_prompt_regex);
+						if (json.strip_img_prompt_from_msg !== false) console.warn('CaiMetadata strip_img_prompt_from_msg', json.strip_img_prompt_from_msg);
+					} catch (e) {
+						console.error('CaiMetadata assert', e, json);
+					}
+				}
+			}
+
+			const JsonFormats = {
+				Tavern: 'TavernAI',
+				Kobold: 'KoboldAI',
+				Pygmalion: 'Pygmalion',
+				Cai: 'CharacterAI Dump'
+			};
+
+			class Character {
+				formats = [];
+
+				name;
+				description;
+				personality;
+				scenario;
+				greeting;
+				examples;
+
+				metadata = {};
+
+				#setProperty(property, object, key) {
+					if (!object || !object.hasOwnProperty(key) || !object[key] || !object[key].trim()) return;
+
+					this[property] = object[key].trim();
+				}
+
+				#detectFormat(json) {
+					const checkProperties = (properties, obj = json) => properties.every(k => obj.hasOwnProperty(k));
+
+					if (checkProperties(['name', 'description', 'personality', 'scenario', 'first_mes', 'mes_example'])) this.formats.push(JsonFormats.Tavern);
+					if (checkProperties(['char_name', 'char_persona', 'world_scenario', 'char_greeting', 'example_dialogue'])) this.formats.push(JsonFormats.Pygmalion);
+					if (checkProperties(['name', 'title', 'description', 'greeting', 'definition'], json.character)) this.formats.push(JsonFormats.Cai);
+				}
+
+				constructor(json) {
+					if (!json) return;
+
+					this.#detectFormat(json);
+
+					this.#setProperty('name', json, 'name'); // TavernAI
+					this.#setProperty('name', json, 'char_name'); // Pygmalion
+					this.#setProperty('name', json.character, 'name'); // CIA
+
+					this.#setProperty('description', json, 'description'); // TavernAI
+					this.#setProperty('description', json.character, 'title'); // CIA
+
+					this.#setProperty('personality', json, 'personality'); // TavernAI
+					this.#setProperty('personality', json, 'char_persona'); // Pygmalion // TODO: personality or description?
+					this.#setProperty('personality', json.character, 'description'); // CIA
+
+					this.#setProperty('scenario', json, 'scenario'); // TavernAI
+					this.#setProperty('scenario', json, 'world_scenario'); // Pygmalion
+
+					this.#setProperty('greeting', json, 'first_mes'); // TavernAI
+					this.#setProperty('greeting', json, 'char_greeting'); // Pygmalion
+					this.#setProperty('greeting', json.character, 'greeting'); // CIA
+
+					this.#setProperty('examples', json, 'mes_example'); // TavernAI
+					this.#setProperty('examples', json, 'example_dialogue'); // Pygmalion
+					this.#setProperty('examples', json.character, 'definition'); // CIA
+
+					if (this.formats.includes(JsonFormats.Cai)) this.metadata.cai = new CaiMetadata(json.character);
+				}
+			}
+
+			class Edit {
+				static #reset() {
+					document.getElementById('edit-image').classList.add('d-none');
+					document.getElementById('edit-image').removeAttribute('src');
+					document.getElementById('edit-image').removeAttribute('alt');
+					document.getElementById('edit-image-svg').classList.remove('d-none');
+					document.getElementById('edit-image-details').innerText = null;
+
+					document.getElementById('edit-metadata-file').classList.add('d-none');
+					document.getElementById('edit-metadata-cai').classList.add('d-none');
+				}
+
+				static #metadataCai(metadata, character) {
+					if (metadata.id) {
+						document.getElementById('edit-metadata-cai-link').innerText = character.name;
+						document.getElementById('edit-metadata-cai-link').href = 'https://beta.character.ai/chat?char=' + metadata.id;
+					}
+
+					if (metadata.avatar) {
+						document.getElementById('edit-metadata-cai-image-container').classList.remove('d-none');
+						document.getElementById('edit-metadata-cai-image').src = 'https://characterai.io/i/400/static/avatars/' + metadata.avatar;
+						document.getElementById('edit-metadata-cai-image').alt = character.name + ' avatar';
+					}
+
+					if (metadata.visibility) document.getElementById('edit-metadata-cai-visibility').innerText = metadata.visibility.toLowerCase();
+					if (metadata.interactionCount) document.getElementById('edit-metadata-cai-interactions').innerText = metadata.interactionCount.toLocaleString();
+
+					document.getElementById('edit-metadata-cai').classList.remove('d-none');
+				}
+
+				constructor(character, file, image) {
+					Edit.#reset();
+
+					if (image) {
+						document.getElementById('edit-image').src = image.src;
+						document.getElementById('edit-image').alt = file.name;
+						document.getElementById('edit-image').classList.remove('d-none');
+
+						document.getElementById('edit-image-svg').classList.add('d-none');
+
+						const ar = Format.Ratio(image.width, image.height);
+						document.getElementById('edit-image-details').innerText = image.width + ' x ' + image.height + 'px (' + (image.width / ar) + ':' + (image.height / ar) + ')';
+					}
+
+					if (file) {
+						document.getElementById('edit-file-filename').innerText = file.name;
+						document.getElementById('edit-file-format').innerText = character.formats.length < 1 ? 'Unknown' : character.formats.join(' + '); // TODO: Tooltip
+						document.getElementById('edit-file-size').innerText = Format.Bytes(file.size);
+						document.getElementById('edit-file-modified').innerText = Format.Ago(file.lastModified);
+						document.getElementById('edit-file-modified').setAttribute('datetime', new Date(file.lastModified).toISOString());
+						Tooltips.FileDate.setContent({
+							'.tooltip-inner': Format.DateTime(file.lastModified)
+						});
+
+						document.getElementById('edit-metadata-file').classList.remove('d-none');
+					}
+
+					document.getElementById('edit-name').value = character.name || '';
+					document.getElementById('edit-description').value = character.description || '';
+					document.getElementById('edit-personality').value = character.personality || '';
+					document.getElementById('edit-scenario').value = character.scenario || '';
+					document.getElementById('edit-greeting').value = character.greeting || '';
+					document.getElementById('edit-examples').value = character.examples || '';
+
+					if (character.metadata.cai) {
+						Edit.#metadataCai(character.metadata.cai, character);
+					}
+
+					Accordion.lock(false);
+					Accordion.Edit.show();
+
+					TextareaAutoSize.Update();
+
+					document.getElementById('edit-name').focus();
+				}
+			}
+
+			// Entrypoint
+			(async () => {
+				const accordion = new Accordion();
+				const tooltips = new Tooltips();
+				const textareaAutoSize = new TextareaAutoSize();
+
+				// Disable form submission
+				document.querySelectorAll('form').forEach(el => {
+					el.addEventListener('submit', e => {
+						e.preventDefault();
+						e.stopPropagation();
+					});
+				});
+
+				document.getElementById('create').addEventListener('click', () => {
+					try {
+						const character = new Character();
+
+						const edit = new Edit(character);
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
+
+				document.getElementById('accordion-load').addEventListener('dragleave', e => {
+					e.preventDefault();
+
+					document.getElementById('accordion-load').classList.remove('bg-drag');
+				});
+
+				document.getElementById('accordion-load').addEventListener('dragover', e => {
+					e.preventDefault();
+
+					if (e.dataTransfer.items[0].kind === 'file') {
+						e.dataTransfer.effectAllowed = 'move';
+						e.dataTransfer.dropEffect = 'move';
+
+						document.getElementById('accordion-load').classList.add('bg-drag');
+					} else {
+						e.dataTransfer.effectAllowed = 'none';
+						e.dataTransfer.dropEffect = 'none';
+
+						document.getElementById('accordion-load').classList.remove('bg-drag');
+					}
+				});
+
+				document.getElementById('accordion-load').addEventListener('drop', e => {
+					e.preventDefault();
+
+					document.getElementById('accordion-load').classList.remove('bg-drag');
+
+					if (e.dataTransfer.files.length < 1) return;
+
+					load(e.dataTransfer.files[0]);
+				});
+
+				document.getElementById('load').addEventListener('change', e => {
+					load(e.target.files[0]);
+				});
+
+				const load = async file => {
+					try {
+						//console.log(file);
+
+						const { json, image } = await Loader.Parse(file);
+						//console.log(json, image);
+
+						const character = new Character(json);
+						//console.log(character);
+
+						const edit = new Edit(character, file, image);
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				};
+
+				document.getElementById('export').addEventListener('click', () => {
+					try {
+						const object = {
+							char_name: document.getElementById('edit-name').value.trim() || null,
+							char_persona: document.getElementById('edit-personality').value.trim() || null,
+							world_scenario: document.getElementById('edit-scenario').value.trim() || null,
+							char_greeting: document.getElementById('edit-greeting').value.trim() || null,
+							example_dialogue: document.getElementById('edit-examples').value.trim() || null,
+							metadata: {
+								version: 1,
+								created: Date.now(),
+								modified: Date.now(),
+								source: null
+							},
+							tool: {
+								name: 'AI Character Editor',
+								version: '0.1.0',
+								url: 'https://zoltanai.github.io/character-editor/'
+							}
+						};
+						//console.log(object);
+
+						const file = new File([JSON.stringify(object, undefined, '\t')], (object.char_name || 'character') + '.pyg.json', { type: 'application/json;charset=utf-8' });
+						//console.log(file);
+
+						const link = window.URL.createObjectURL(file);
+						//console.log(link);
+
+						const a = document.createElement('a');
+						a.setAttribute('download', file.name);
+						a.setAttribute('href', link);
+						a.click();
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
+			})();
+		</script>
+	</body>
+</html>
