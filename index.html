@@ -102,6 +102,14 @@
 							<div id="accordion-edit" class="accordion-collapse collapse" data-bs-parent="#accordion">
 								<div class="accordion-body">
 									<div class="container">
+										<div class="row my-2">
+											<div id="edit-alert-characterai-history" class="alert alert-warning alert-dismissible show d-none" role="alert">
+												<p class="fw-semibold">You have loaded a CharacterAI chat history file</p>
+												<p class="mb-0">Chat history files do not contain character example messages so where at all possible use a CharacterAI definition file!<br>If the character is your own or the character settings are public then you will get better results <a id="edit-alert-characterai-history-link" class="alert-link" href="#" target="_blank">downloading a definition dump</a> and using that instead.</p>
+												<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+											</div>
+										</div>
+
 										<div class="row">
 											<div id="edit-details" class="col-12 col-md-5 col-lg-4 col-xl-3">
 												<figure class="figure w-100 text-center">
@@ -643,6 +651,7 @@
 					this.#setProperty('avatarGenerationPrompt', json, 'base_img_prompt');
 					this.#setProperty('categories', json, 'categories');
 					this.#setProperty('interactionCount', json, 'num_interactions');
+					this.#setProperty('interactionCount', json, 'participant__num_interactions'); // CIA History
 					this.#setProperty('voiceId', json, 'voice_id');
 
 					try {
@@ -704,30 +713,30 @@
 
 					this.#setProperty('name', json, 'name'); // TavernAI
 					this.#setProperty('name', json, 'char_name'); // Pygmalion
-					if (json.character) this.#setProperty('name', json.character, 'name'); // CIA
-					if (json.info && json.info.character) this.#setProperty('name', json.info.character, 'name'); // CIA
+					if (json.character) this.#setProperty('name', json.character, 'name'); // CIA Definition
+					if (json.info && json.info.character) this.#setProperty('name', json.info.character, 'name'); // CIA History
 
 					this.#setProperty('description', json, 'description'); // TavernAI
-					if (json.character) this.#setProperty('description', json.character, 'title'); // CIA
-					if (json.info && json.info.character) this.#setProperty('description', json.info.character, 'title'); // CIA
+					if (json.character) this.#setProperty('description', json.character, 'title'); // CIA Definition
+					if (json.info && json.info.character) this.#setProperty('description', json.info.character, 'title'); // CIA History
 
 					this.#setProperty('personality', json, 'personality'); // TavernAI
 					this.#setProperty('personality', json, 'char_persona'); // Pygmalion // TODO: personality or description?
-					if (json.character) this.#setProperty('personality', json.character, 'description'); // CIA
-					if (json.info && json.info.character) this.#setProperty('personality', json.info.character, 'description'); // CIA
+					if (json.character) this.#setProperty('personality', json.character, 'description'); // CIA Definition
+					if (json.info && json.info.character) this.#setProperty('personality', json.info.character, 'description'); // CIA History
 
 					this.#setProperty('scenario', json, 'scenario'); // TavernAI
 					this.#setProperty('scenario', json, 'world_scenario'); // Pygmalion
 
 					this.#setProperty('greeting', json, 'first_mes'); // TavernAI
 					this.#setProperty('greeting', json, 'char_greeting'); // Pygmalion
-					if (json.character) this.#setProperty('greeting', json.character, 'greeting'); // CIA
-					if (json.info && json.info.character) this.#setProperty('greeting', json.info.character, 'greeting'); // CIA
+					if (json.character) this.#setProperty('greeting', json.character, 'greeting'); // CIA Definition
+					if (json.info && json.info.character) this.#setProperty('greeting', json.info.character, 'greeting'); // CIA History
 
 					this.#setProperty('examples', json, 'mes_example'); // TavernAI
 					this.#setProperty('examples', json, 'example_dialogue'); // Pygmalion
-					if (json.character) this.#setProperty('examples', json.character, 'definition'); // CIA
-					if (json.info && json.info.character) this.#setProperty('examples', json.info.character, 'definition'); // CIA
+					if (json.character) this.#setProperty('examples', json.character, 'definition'); // CIA Definition
+					if (json.info && json.info.character) this.#setProperty('examples', json.info.character, 'definition'); // CIA History
 
 					if (this.formats.includes(JsonFormats.CaiDefinition)) this.metadata.cai = new CaiMetadata(json.character);
 					if (this.formats.includes(JsonFormats.CaiHistory)) this.metadata.cai = new CaiMetadata(json.info.character);
@@ -736,6 +745,8 @@
 
 			class Edit {
 				static #reset() {
+					document.getElementById('edit-alert-characterai-history').classList.add('d-none');
+
 					document.getElementById('edit-image').classList.add('d-none');
 					document.getElementById('edit-image').removeAttribute('src');
 					document.getElementById('edit-image').removeAttribute('alt');
@@ -766,6 +777,11 @@
 
 				constructor(character, file, image) {
 					Edit.#reset();
+
+					if (character.formats.length === 1 && character.formats.includes(JsonFormats.CaiHistory)) {
+						document.getElementById('edit-alert-characterai-history').classList.remove('d-none');
+						document.getElementById('edit-alert-characterai-history-link').href = 'https://beta.character.ai/editing?char=' + character.metadata.cai.id;
+					}
 
 					if (image) {
 						document.getElementById('edit-image').src = image.src;
