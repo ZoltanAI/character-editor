@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="application-name" content="AI Character Editor">
 		<meta name="description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
-		<meta name="version" content="0.2.0">
+		<meta name="version" content="0.2.1">
 		<meta name="revision" content="2023-02-05">
 		<meta name="author" content="ZoltanAI">
 		<meta name="contact" content="Zoltan#8287 on Discord">
@@ -211,6 +211,7 @@
 													<div class="mb-3">
 														<label for="edit-name" class="form-label fw-semibold">Name</label>
 														<input type="text" class="form-control" id="edit-name" required>
+														<label for="edit-name" class="form-label float-end mt-1 small text-secondary"></label>
 														<div class="invalid-feedback">
 															Name is required by all formats
 														</div>
@@ -219,26 +220,31 @@
 													<div class="mb-3">
 														<label for="edit-description" class="form-label fw-semibold">Description</label>
 														<textarea class="form-control auto-size" id="edit-description" rows="1"></textarea>
+														<label for="edit-description" class="form-label float-end mt-1 small text-secondary"></label>
 													</div>
 
 													<div class="mb-3">
 														<label for="edit-personality" class="form-label fw-semibold">Personality</label>
 														<textarea class="form-control auto-size" id="edit-personality" rows="1"></textarea>
+														<label for="edit-personality" class="form-label float-end mt-1 small text-secondary"></label>
 													</div>
 
 													<div class="mb-3">
 														<label for="edit-scenario" class="form-label fw-semibold">Scenario</label>
 														<textarea class="form-control auto-size" id="edit-scenario" rows="1"></textarea>
+														<label for="edit-scenario" class="form-label float-end mt-1 small text-secondary"></label>
 													</div>
 
 													<div class="mb-3">
 														<label for="edit-greeting" class="form-label fw-semibold">Greeting Message</label>
 														<textarea class="form-control auto-size" id="edit-greeting" rows="1"></textarea>
+														<label for="edit-greeting" class="form-label float-end mt-1 small text-secondary"></label>
 													</div>
 
 													<div class="mb-3">
 														<label for="edit-examples" class="form-label fw-semibold">Example Messages</label>
 														<textarea class="form-control auto-size" id="edit-examples" rows="1"></textarea>
+														<label for="edit-examples" class="form-label float-end mt-1 small text-secondary"></label>
 													</div>
 												</form>
 											</div>
@@ -282,7 +288,7 @@
 					</div>
 
 					<div class="col text-end">
-						Version 0.2
+						Version 0.2.1
 					</div>
 				</div>
 			</div>
@@ -309,7 +315,7 @@
 			</div>
 		</div>
 
-		<script src="https://cdn.jsdelivr.net/combine/npm/bootstrap@5.2/dist/js/bootstrap.bundle.min.js,npm/crc-32@1.2"></script>
+		<script src="https://cdn.jsdelivr.net/combine/npm/bootstrap@5.2/dist/js/bootstrap.bundle.min.js,npm/crc-32@1.2,gh/syonfox/GPT-3-Encoder@c3c2e2533a15645d812b5e6fcb00b75b74718161/browser.min.js"></script>
 		<script>
 			'use strict';
 
@@ -444,6 +450,38 @@
 					const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
 					Tooltips.FileDate = Tooltips.#create(tooltips[0]);
 					Tooltips.Footer = Tooltips.#create(tooltips[1]);
+				}
+			}
+
+			class Tokenizer {
+				static Update(el) {
+					if (el === undefined) {
+						document.querySelectorAll('input[type=text], textarea').forEach(el => {
+							this.Update(el);
+						});
+
+						return;
+					}
+
+					const str = el.value.trim();
+					const tokens = gpt3encoder.countTokens(str);
+
+					let nextSibling = el.nextSibling;
+					while (nextSibling && nextSibling.nodeType != 1) {
+						nextSibling = nextSibling.nextSibling;
+					}
+
+					nextSibling.innerText = str.length.toLocaleString() + ' characters, ' + tokens.toLocaleString() + ' tokens';
+				}
+
+				constructor() {
+					document.querySelectorAll('input[type=text], textarea').forEach(el => {
+						Tokenizer.Update(el);
+
+						el.addEventListener('input', e => {
+							Tokenizer.Update(e.target);
+						});
+					});
 				}
 			}
 
@@ -961,6 +999,7 @@
 					Accordion.lock(false);
 					Accordion.Edit.show();
 
+					Tokenizer.Update();
 					TextareaAutoSize.Update();
 
 					document.getElementById('edit-name').focus();
@@ -971,6 +1010,7 @@
 			(async () => {
 				const accordion = new Accordion();
 				const tooltips = new Tooltips();
+				const tokenizer = new Tokenizer();
 				const textareaAutoSize = new TextareaAutoSize();
 
 				// Disable form submission
@@ -1061,7 +1101,7 @@
 							},
 							tool: {
 								name: 'AI Character Editor',
-								version: '0.2.0',
+								version: '0.2.1',
 								url: 'https://zoltanai.github.io/character-editor/'
 							}
 						};
@@ -1099,7 +1139,7 @@
 							},
 							tool: {
 								name: 'AI Character Editor',
-								version: '0.2.0',
+								version: '0.2.1',
 								url: 'https://zoltanai.github.io/character-editor/'
 							}
 						};
