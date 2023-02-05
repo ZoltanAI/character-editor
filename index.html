@@ -5,8 +5,8 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="application-name" content="AI Character Editor">
 		<meta name="description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
-		<meta name="version" content="0.1.0">
-		<meta name="revision" content="2023-02-04">
+		<meta name="version" content="0.2.0">
+		<meta name="revision" content="2023-02-05">
 		<meta name="author" content="ZoltanAI">
 		<meta name="contact" content="Zoltan#8287 on Discord">
 		<meta name="license" content="GNU-GPLv3">
@@ -16,8 +16,8 @@
 		<meta property="og:url" content="https://zoltanai.github.io/character-editor/">
 		<meta property="og:type" content="website">
 		<title>AI Character Editor</title>
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2/dist/css/bootstrap.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10/font/bootstrap-icons.min.css">
 		<style>
 			.accordion-button:disabled {
 				cursor: not-allowed;
@@ -103,6 +103,11 @@
 								<div class="accordion-body">
 									<div class="container">
 										<div class="row my-2">
+											<div id="edit-alert-png" class="alert alert-danger alert-dismissible show d-none" role="alert">
+												<p class="fw-semibold">You have loaded a plain PNG file</p>
+												<p class="mb-0">The image file you have loaded is not a TavernUI Character Card format PNG and does not contain any character data!<br>You can still use this image, manually create your character and export it as a TavernUI Character Card image.</p>
+												<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+											</div>
 											<div id="edit-alert-characterai-history" class="alert alert-warning alert-dismissible show d-none" role="alert">
 												<p class="fw-semibold">You have loaded a CharacterAI chat history file</p>
 												<p class="mb-0">Chat history files do not contain character example messages so where at all possible use a CharacterAI definition file!<br>If the character is your own or the character settings are public then you will get better results <a id="edit-alert-characterai-history-link" class="alert-link" href="#" target="_blank">downloading a definition dump</a> and using that instead.</p>
@@ -254,7 +259,9 @@
 								<div class="accordion-body text-center">
 									<p class="fs-4 mt-3 mb-4">More features and formats coming soon</p>
 
-									<button id="export" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Pygmalion JSON</button>
+									<button id="export-pyg" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Pygmalion JSON</button>
+									<br>
+									<button id="export-png" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as TavernAI Character Card PNG</button>
 								</div>
 							</div>
 						</div>
@@ -275,7 +282,7 @@
 					</div>
 
 					<div class="col text-end">
-						Version 0.1
+						Version 0.2
 					</div>
 				</div>
 			</div>
@@ -302,9 +309,25 @@
 			</div>
 		</div>
 
-		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/combine/npm/bootstrap@5.2/dist/js/bootstrap.bundle.min.js,npm/crc-32@1.2"></script>
 		<script>
 			'use strict';
+
+			class PngError extends Error {
+				constructor(message) {
+					super(message);
+
+					this.name = 'PNG Format Error';
+				}
+			}
+
+			class PngFormatError extends Error {
+				constructor(message) {
+					super(message);
+
+					this.name = 'PNG Error';
+				}
+			}
 
 			class Exception {
 				static modal = new bootstrap.Modal('#error');
@@ -312,9 +335,12 @@
 				static show(ex) {
 					console.error(ex);
 
-					if (ex.fileName && ex.cause && ex.cause.fileName && ex.fileName === ex.cause.fileName) delete ex.cause.fileName;
+					let message = 'AI Character Editor v0.2.0\n';
+					if (ex.fileName) message += ex.fileName + '\n';
+					message += ex.name + (ex.lineNumber ? ' (' + ex.lineNumber + (ex.columnNumber ? ':' + ex.columnNumber : '') : '') + ')' + ': ' + ex.message + '\n';
+					if (ex.cause) message += ex.cause.name + (ex.cause.lineNumber ? ' (' + ex.cause.lineNumber + (ex.cause.columnNumber ? ':' + ex.cause.columnNumber : '') : '') + ')' + ': ' + ex.cause.message + '\n';
 
-					document.getElementById('error-message').innerText = JSON.stringify(ex, Object.getOwnPropertyNames(ex), 4);
+					document.getElementById('error-message').innerText = message.trim();
 
 					this.modal.show();
 				}
@@ -449,51 +475,9 @@
 			}
 
 			class Png {
-				// Read PNG format chunk
-				static #readChunk(arr, index) {
-					const getNextInt32 = () => {
-						const map = new Uint8Array(4).map(() => arr[index++]).reverse();
-						return new Int32Array(map.buffer)[0];
-					};
-
-					const length = getNextInt32();
-
-					let type = "";
-					for (let i = 0; i < 4; i++) {
-						type += String.fromCharCode(arr[index++]);
-					}
-
-					const data = arr.slice(index, index + length);
-
-					index += length;
-
-					const crc = getNextInt32();
-
-					return {
-						length,
-						type,
-						data,
-						crc
-					};
-				}
-
-				// Read PNG file and extract chunks
-				static #getChunks(arr) {
-					if (arr[0] !== 0x89 || arr[1] !== 0x50 || arr[2] !== 0x4E || arr[3] !== 0x47 || arr[4] !== 0x0D || arr[5] !== 0x0A || arr[6] !== 0x1A || arr[7] !== 0x0A) throw new Error('Invalid PNG header');
-
-					const chunks = [];
-					let index = 8;
-
-					while (index < arr.length) {
-						const chunk = Png.#readChunk(arr, index);
-						chunks.push(chunk);
-						index += chunk.length + 4 * 3;
-					}
-
-					if (chunks.length < 1 || chunks[chunks.length - 1].type !== 'IEND') throw new Error('PNG file ended prematurely, missing IEND header');
-
-					return chunks;
-				}
+				static #uint8 = new Uint8Array(4);
+				static #int32 = new Int32Array(this.#uint8.buffer);
+				static #uint32 = new Uint32Array(this.#uint8.buffer);
 
 				// Parse and extract PNG tEXt chunk
 				static #decodeText(data) {
@@ -501,8 +485,8 @@
 					let keyword = '';
 					let text = '';
 
-					for (let i = 0; i < data.length; i++) {
-						const code = data[i];
+					for (let index = 0; index < data.length; index++) {
+						const code = data[index];
 
 						if (naming) {
 							if (code) {
@@ -514,7 +498,7 @@
 							if (code) {
 								text += String.fromCharCode(code);
 							} else {
-								throw new Error('Invalid NULL character found, 0x00 character is not permitted in tEXt content');
+								throw new PngFormatError('Invalid NULL character found in PNG tEXt chunk');
 							}
 						}
 					}
@@ -525,23 +509,166 @@
 					};
 				}
 
-				// Parse PNG file and return decoded "chara" base64 text metadata value
+				// Encode value to PNG tEXt chunk
+				static #encodeText(keyword, text) {
+					keyword = String(keyword);
+					text = String(text);
+
+					if (!/^[\x00-\xFF]+$/.test(keyword) || !/^[\x00-\xFF]+$/.test(text)) throw new PngFormatError('Invalid character in PNG tEXt chunk');
+					if (keyword.length > 79) throw new PngFormatError('Keyword "' + keyword + '" is longer than the 79 character limit');
+
+					const data = new Uint8Array(keyword.length + text.length + 1);
+					let idx = 0;
+					let code;
+
+					for (let i = 0; i < keyword.length; i++) {
+						if (!(code = keyword.charCodeAt(i))) throw new PngFormatError('0x00 character is not permitted in tEXt keywords');
+						data[idx++] = code;
+					}
+
+					data[idx++] = 0;
+
+					for (let i = 0; i < text.length; i++) {
+						if (!(code = text.charCodeAt(i))) throw new PngFormatError('0x00 character is not permitted in tEXt text');
+						data[idx++] = code;
+					}
+
+					return data;
+				}
+
+				// Read PNG format chunk
+				static #readChunk(data, idx) {
+					// Read length field
+					this.#uint8[3] = data[idx++];
+					this.#uint8[2] = data[idx++];
+					this.#uint8[1] = data[idx++];
+					this.#uint8[0] = data[idx++];
+					const length = this.#uint32[0];
+
+					// Read chunk type field
+					const chunkType = String.fromCharCode(data[idx++]) + String.fromCharCode(data[idx++]) + String.fromCharCode(data[idx++]) + String.fromCharCode(data[idx++]);
+
+					// Read chunk data field
+					const chunkData = data.slice(idx, idx + length);
+					idx += length;
+
+					// Read CRC field
+					this.#uint8[3] = data[idx++];
+					this.#uint8[2] = data[idx++];
+					this.#uint8[1] = data[idx++];
+					this.#uint8[0] = data[idx++];
+					const crc = this.#int32[0];
+
+					// Compare stored CRC to actual
+					if (crc !== CRC32.buf(chunkData, CRC32.str(chunkType))) throw new PngFormatError('CRC for "' + chunkType + '" header is invalid, file is likely corrupted');
+
+					return {
+						type: chunkType,
+						data: chunkData,
+						crc
+					};
+				}
+
+				// Read PNG file and extract chunks
+				static #readChunks(data) {
+					if (data[0] !== 0x89 || data[1] !== 0x50 || data[2] !== 0x4E || data[3] !== 0x47 || data[4] !== 0x0D || data[5] !== 0x0A || data[6] !== 0x1A || data[7] !== 0x0A) throw new Error('Invalid PNG header');
+
+					const chunks = [];
+
+					let idx = 8; // Skip signature
+					while (idx < data.length) {
+						const chunk = Png.#readChunk(data, idx);
+
+						if (!chunks.length && chunk.type !== 'IHDR') throw new PngFormatError('PNG missing IHDR header');
+
+						chunks.push(chunk);
+						idx += 4 + 4 + chunk.data.length + 4; // Skip length, chunk type, chunk data, CRC
+					}
+
+					if (chunks.length === 0) throw new PngFormatError('PNG ended prematurely, no chunks');
+					if (chunks[chunks.length - 1].type !== 'IEND') throw new PngFormatError('PNG ended prematurely, missing IEND header');
+
+					return chunks;
+				}
+
+				// Write PNG file from chunks
+				static #encodeChunks(chunks) {
+					const output = new Uint8Array(chunks.reduce((a, c) => a + 4 + 4 + c.data.length + 4, 8)); // Signature + chunks (length, chunk type, chunk data, CRC)
+
+					// Signature
+					output[0] = 0x89;
+					output[1] = 0x50;
+					output[2] = 0x4E;
+					output[3] = 0x47;
+					output[4] = 0x0D;
+					output[5] = 0x0A;
+					output[6] = 0x1A;
+					output[7] = 0x0A;
+
+					let idx = 8; // After signature
+
+					chunks.forEach(c => {
+						// Write length field
+						this.#uint32[0] = c.data.length;
+						output[idx++] = this.#uint8[3];
+						output[idx++] = this.#uint8[2];
+						output[idx++] = this.#uint8[1];
+						output[idx++] = this.#uint8[0];
+
+						// Write chunk type field
+						output[idx++] = c.type.charCodeAt(0);
+						output[idx++] = c.type.charCodeAt(1);
+						output[idx++] = c.type.charCodeAt(2);
+						output[idx++] = c.type.charCodeAt(3);
+
+						// Write chunk data field
+						for (let i = 0; i < c.data.length;) {
+							output[idx++] = c.data[i++];
+						}
+
+						// Write CRC field
+						this.#int32[0] = c.crc || CRC32.buf(c.data, CRC32.str(c.type));
+						output[idx++] = this.#uint8[3];
+						output[idx++] = this.#uint8[2];
+						output[idx++] = this.#uint8[1];
+						output[idx++] = this.#uint8[0];
+					});
+
+					return output;
+				}
+
+				// Parse PNG file and return decoded UTF8 "chara" base64 tEXt chunk value
 				static Parse(arrayBuffer) {
-					const chunks = Png.#getChunks(new Uint8Array(arrayBuffer));
+					const chunks = Png.#readChunks(new Uint8Array(arrayBuffer));
 
 					const text = chunks.filter(c => c.type === 'tEXt').map(c => Png.#decodeText(c.data));
-					if (text.length < 1) throw new Error('No PNG text fields found in file');
+					if (text.length < 1) throw new PngError('No PNG text fields found in file');
 
 					const chara = text.find(t => t.keyword === 'chara');
-					if (chara === undefined) throw new Error('No PNG text field named "chara" found in file');
+					if (chara === undefined) throw new PngError('No PNG text field named "chara" found in file');
 
 					try {
 						return new TextDecoder().decode(Uint8Array.from(atob(chara.text), c => c.charCodeAt(0)));
 					} catch (e) {
-						throw new Error('Error parsing "chara" field as base64', {
+						throw new PngFormatError('Error parsing "chara" field as base64', {
 							cause: e
 						});
 					}
+				}
+
+				// Parse PNG file, strip all tEXt chunks, add encoded UTF8 "chara" base64 tEXt chunk and return PNG file
+				static Generate(arrayBuffer, text) {
+					// Read PNG and remove all tEXt chunks, as TavernUI does
+					// NOTE: TavernUI blindly reads first tEXt chunk, rather than searching for one named "chara"
+					const chunks = Png.#readChunks(new Uint8Array(arrayBuffer)).filter(c => c.type !== 'tEXt');
+
+					// Insert new "chara" tEXt chunk just before IEND chunk, as TavernUI does
+					chunks.splice(-1, 0, {
+						type: 'tEXt',
+						data: Png.#encodeText('chara', btoa(new TextEncoder().encode(text).reduce((a, c) => a + String.fromCharCode(c), '')))
+					});
+
+					return Png.#encodeChunks(chunks);
 				}
 			}
 
@@ -585,18 +712,18 @@
 					} else if (file.type === 'image/png') {
 						try {
 							image = await Loader.#createImage(URL.createObjectURL(file));
-						} catch (e) {
-							throw new Error('Error loading image', {
-								cause: e
-							});
-						}
+						} catch { }
 
 						try {
 							json = Loader.#parsePng(await file.arrayBuffer());
 						} catch (e) {
-							throw new Error('Error parsing embedded JSON', {
-								cause: e
-							});
+							if (e instanceof PngError) {
+								json = null;
+							} else {
+								throw new Error('Error parsing PNG embedded JSON', {
+									cause: e
+								});
+							}
 						}
 					} else {
 						throw new Error('Bad file type');
@@ -680,6 +807,7 @@
 			};
 
 			class Character {
+				empty = false;
 				formats = [];
 
 				name;
@@ -707,7 +835,10 @@
 				}
 
 				constructor(json) {
-					if (!json) return;
+					if (!json) {
+						this.empty = true; // TODO: Set format to "Plain PNG"
+						return;
+					}
 
 					this.#detectFormat(json);
 
@@ -745,6 +876,7 @@
 
 			class Edit {
 				static #reset() {
+					document.getElementById('edit-alert-png').classList.add('d-none');
 					document.getElementById('edit-alert-characterai-history').classList.add('d-none');
 
 					document.getElementById('edit-image').classList.add('d-none');
@@ -755,6 +887,8 @@
 
 					document.getElementById('edit-metadata-file').classList.add('d-none');
 					document.getElementById('edit-metadata-cai').classList.add('d-none');
+
+					document.getElementById('export-png').classList.add('d-none');
 				}
 
 				static #metadataCai(metadata, character) {
@@ -778,6 +912,10 @@
 				constructor(character, file, image) {
 					Edit.#reset();
 
+					if (image && character.empty) {
+						document.getElementById('edit-alert-png').classList.remove('d-none');
+					}
+
 					if (character.formats.length === 1 && character.formats.includes(JsonFormats.CaiHistory)) {
 						document.getElementById('edit-alert-characterai-history').classList.remove('d-none');
 						document.getElementById('edit-alert-characterai-history-link').href = 'https://beta.character.ai/editing?char=' + character.metadata.cai.id;
@@ -792,6 +930,8 @@
 
 						const ar = Format.Ratio(image.width, image.height);
 						document.getElementById('edit-image-details').innerText = image.width + ' x ' + image.height + 'px (' + (image.width / ar) + ':' + (image.height / ar) + ')';
+
+						document.getElementById('export-png').classList.remove('d-none');
 					}
 
 					if (file) {
@@ -903,7 +1043,7 @@
 					}
 				};
 
-				document.getElementById('export').addEventListener('click', () => {
+				document.getElementById('export-pyg').addEventListener('click', () => {
 					try {
 						const object = {
 							char_name: document.getElementById('edit-name').value.trim() || null,
@@ -919,13 +1059,61 @@
 							},
 							tool: {
 								name: 'AI Character Editor',
-								version: '0.1.0',
+								version: '0.2.0',
 								url: 'https://zoltanai.github.io/character-editor/'
 							}
 						};
 						//console.log(object);
 
 						const file = new File([JSON.stringify(object, undefined, '\t')], (object.char_name || 'character') + '.pyg.json', { type: 'application/json;charset=utf-8' });
+						//console.log(file);
+
+						const link = window.URL.createObjectURL(file);
+						//console.log(link);
+
+						const a = document.createElement('a');
+						a.setAttribute('download', file.name);
+						a.setAttribute('href', link);
+						a.click();
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
+
+				document.getElementById('export-png').addEventListener('click', async () => {
+					try {
+						const object = {
+							name: document.getElementById('edit-name').value.trim() || null,
+							description: document.getElementById('edit-description').value.trim() || null,
+							personality: document.getElementById('edit-personality').value.trim() || null,
+							scenario: document.getElementById('edit-scenario').value.trim() || null,
+							first_mes: document.getElementById('edit-greeting').value.trim() || null,
+							mes_example: document.getElementById('edit-examples').value.trim() || null,
+							metadata: {
+								version: 1,
+								created: Date.now(),
+								modified: Date.now(),
+								source: null
+							},
+							tool: {
+								name: 'AI Character Editor',
+								version: '0.2.0',
+								url: 'https://zoltanai.github.io/character-editor/'
+							}
+						};
+						//console.log(object);
+
+						const json = JSON.stringify(object, undefined, '\t');
+						//console.log(json);
+
+						const request = await fetch(document.getElementById('edit-image').src);
+						const blob = await request.blob();
+						//console.log(blob);
+
+						const png = Png.Generate(await blob.arrayBuffer(), json);
+						//console.log(png);
+
+						const file = new File([png], (object.name || 'character') + '.card.png', { type: 'image/png' });
 						//console.log(file);
 
 						const link = window.URL.createObjectURL(file);
