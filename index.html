@@ -1024,6 +1024,8 @@
 				});
 
 				document.getElementById('load').addEventListener('change', e => {
+					if (!e.target.files || e.target.files.length < 1) return;
+
 					load(e.target.files[0]);
 				});
 
