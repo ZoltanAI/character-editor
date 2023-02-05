@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="application-name" content="AI Character Editor">
 		<meta name="description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
-		<meta name="version" content="0.2.1">
+		<meta name="version" content="0.3.0">
 		<meta name="revision" content="2023-02-05">
 		<meta name="author" content="ZoltanAI">
 		<meta name="contact" content="Zoltan#8287 on Discord">
@@ -38,6 +38,16 @@
 			textarea {
 				resize: none;
 			}
+
+			@media (min-width: 992px) {
+				.border-end-lg {
+					border-right: var(--bs-border-width) var(--bs-border-style) var(--bs-border-color) !important;
+				}
+
+				.border-bottom-lg-0 {
+					border-bottom: 0 !important;
+				}
+			}
 		</style>
 	</head>
 
@@ -46,10 +56,10 @@
 			<div class="container py-4">
 				<h1 class="display-1 text-center">AI Character Editor</h1>
 				<p class="my-0 lead text-center">Create, edit and convert to and from <a href="https://beta.character.ai/" target="_blank">CharacterAI</a> <a href="https://github.com/0x000011b/characterai-dumper" target="_blank">dumps</a>, <a href="https://github.com/PygmalionAI/gradio-ui" target="_blank">Pygmalion</a>, <a href="https://github.com/KoboldAI/KoboldAI-Client" target="_blank">KoboldAI</a> and <a href="https://github.com/TavernAI/TavernAI" target="_blank">TavernAI</a> formats easily</p>
-				<p class="lead text-center">Supports both JSON and image files</p>
+				<p class="lead text-center">Supports both JSON and Character Card image files</p>
 
 				<div class="container my-5 text-center">
-					<div class="alert alert-warning alert-dismissible show" role="alert">
+					<div id="site-alert" class="alert alert-warning alert-dismissible show d-none" role="alert">
 						None of your data is uploaded or shared, this entire webpage runs locally in your browser!
 						<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 					</div>
@@ -105,7 +115,7 @@
 										<div class="row my-2">
 											<div id="edit-alert-png" class="alert alert-danger alert-dismissible show d-none" role="alert">
 												<p class="fw-semibold">You have loaded a plain PNG file</p>
-												<p class="mb-0">The image file you have loaded is not a TavernUI Character Card format PNG and does not contain any character data!<br>You can still use this image, manually create your character and export it as a TavernUI Character Card image.</p>
+												<p class="mb-0">The image file you have loaded is not a Character Card image and does not contain any character data!<br>You can still use this image to manually create your character and export it.</p>
 												<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 											</div>
 											<div id="edit-alert-characterai-history" class="alert alert-warning alert-dismissible show d-none" role="alert">
@@ -124,7 +134,7 @@
 													</svg>
 
 													<img id="edit-image" class="img-thumbnail w-100 bg-light d-none" src="#" alt="">
-													<figcaption id="edit-image-details" class="figure-caption"></figcaption>
+													<figcaption id="edit-image-details" class="figure-caption d-inline-flex mt-1"></figcaption>
 												</figure>
 
 												<div id="edit-metadata-file" class="container my-4 p-3 border rounded d-none">
@@ -263,11 +273,32 @@
 
 							<div id="accordion-export" class="accordion-collapse collapse" data-bs-parent="#accordion">
 								<div class="accordion-body text-center">
-									<p class="fs-4 mt-3 mb-4">More features and formats coming soon</p>
+									<div class="container">
+										<div class="row py-3 px-5">
+											<div id="export-image" class="col-12 col-lg border-end-0 border-end-lg border-bottom border-bottom-lg-0 pb-4 pb-lg-0 mb-4 mb-lg-0 d-none">
+												<h4>Export as Image</h4>
+												<button id="export-png" type="button" class="btn btn-outline-primary my-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Character Card Image</button>
+												<p>Compatible with <a href="https://github.com/TavernAI/TavernAI" target="_blank">TavernAI</a> / <a href="https://github.com/oobabooga/text-generation-webui" target="_blank">Text Generation</a></p>
 
-									<button id="export-pyg" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Pygmalion JSON</button>
-									<br>
-									<button id="export-png" type="button" class="btn btn-outline-primary mb-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as TavernAI Character Card PNG</button>
+												<div class="mt-4 small text-muted">
+													Character Cards are PNG images with embedded JSON<br>
+													Be careful editing the image as some editors may remove the JSON
+												</div>
+											</div>
+
+											<div class="col-12 col-lg">
+												<h4>Export as JSON</h4>
+												<button id="export-json" type="button" class="btn btn-outline-primary my-3"><i class="bi bi-download flex-shrink-0 me-1"></i> Download as Hybrid JSON</button>
+												<p>Compatible with <a href="https://github.com/TavernAI/TavernAI" target="_blank">TavernAI</a> / <a href="https://github.com/PygmalionAI/gradio-ui" target="_blank">Pygmalion</a> / <a href="https://github.com/oobabooga/text-generation-webui" target="_blank">Text Generation</a></p>
+
+												<div class="mt-4 small text-muted">
+													Having problems with the Hybrid JSON?<br>
+													<a href="" id="export-json-gradio" class="link-secondary">Download as Pygmalion / Text Generation JSON</a><br>
+													<a href="" id="export-json-tavern" class="link-secondary">Download as TavernAI JSON</a>
+												</div>
+											</div>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -283,12 +314,8 @@
 						<span data-bs-toggle="tooltip" data-bs-title="Get in contact on Discord for any suggestions or help!">Made with &#128166; by <code class="user-select-all">Zoltan#8287</code></span>
 					</div>
 
-					<div class="col text-center fw-bold text-danger">
-						Work in Progress!
-					</div>
-
 					<div class="col text-end">
-						Version 0.2.1
+						Version 0.3
 					</div>
 				</div>
 			</div>
@@ -319,6 +346,9 @@
 		<script>
 			'use strict';
 
+			const APP = 'AI Character Editor';
+			const VER = '0.3.0';
+
 			class PngError extends Error {
 				constructor(message) {
 					super(message);
@@ -341,7 +371,7 @@
 				static show(ex) {
 					console.error(ex);
 
-					let message = 'AI Character Editor v0.2.0\n';
+					let message = APP + ' v' + VER + '\n';
 					if (ex.fileName) message += ex.fileName + '\n';
 					message += ex.name + (ex.lineNumber ? ' (' + ex.lineNumber + (ex.columnNumber ? ':' + ex.columnNumber : '') : '') + ')' + ': ' + ex.message + '\n';
 					if (ex.cause) message += ex.cause.name + (ex.cause.lineNumber ? ' (' + ex.cause.lineNumber + (ex.cause.columnNumber ? ':' + ex.cause.columnNumber : '') : '') + ')' + ': ' + ex.cause.message + '\n';
@@ -926,7 +956,7 @@
 					document.getElementById('edit-metadata-file').classList.add('d-none');
 					document.getElementById('edit-metadata-cai').classList.add('d-none');
 
-					document.getElementById('export-png').classList.add('d-none');
+					document.getElementById('export-image').classList.add('d-none');
 				}
 
 				static #metadataCai(metadata, character) {
@@ -969,7 +999,7 @@
 						const ar = Format.Ratio(image.width, image.height);
 						document.getElementById('edit-image-details').innerText = image.width + ' x ' + image.height + 'px (' + (image.width / ar) + ':' + (image.height / ar) + ')';
 
-						document.getElementById('export-png').classList.remove('d-none');
+						document.getElementById('export-image').classList.remove('d-none');
 					}
 
 					if (file) {
@@ -1008,6 +1038,12 @@
 
 			// Entrypoint
 			(async () => {
+				const alert = document.getElementById('site-alert');
+				if (localStorage.getItem('site-alert') !== '0') alert.classList.remove('d-none');
+				alert.addEventListener('closed.bs.alert', () => {
+					localStorage.setItem('site-alert', '0');
+				});
+
 				const accordion = new Accordion();
 				const tooltips = new Tooltips();
 				const tokenizer = new Tokenizer();
@@ -1085,38 +1121,112 @@
 					}
 				};
 
-				document.getElementById('export-pyg').addEventListener('click', () => {
+				const exportMetadata = {
+					metadata: {
+						version: 1,
+						created: Date.now(),
+						modified: Date.now(),
+						source: null,
+						tool: {
+							name: APP,
+							version: VER,
+							url: 'https://zoltanai.github.io/character-editor/'
+						}
+					}
+				};
+
+				const exportGradio = () => {
+					return {
+						char_name: document.getElementById('edit-name').value.trim() || null,
+						char_persona: document.getElementById('edit-personality').value.trim() || null,
+						world_scenario: document.getElementById('edit-scenario').value.trim() || null,
+						char_greeting: document.getElementById('edit-greeting').value.trim() || null,
+						example_dialogue: document.getElementById('edit-examples').value.trim() || null
+					};
+				};
+
+				const exportTavern = () => {
+					return {
+						name: document.getElementById('edit-name').value.trim() || null,
+						description: document.getElementById('edit-description').value.trim() || null,
+						personality: document.getElementById('edit-personality').value.trim() || null,
+						scenario: document.getElementById('edit-scenario').value.trim() || null,
+						first_mes: document.getElementById('edit-greeting').value.trim() || null,
+						mes_example: document.getElementById('edit-examples').value.trim() || null
+					};
+				};
+
+				const exportFile = (file) => {
+					const link = window.URL.createObjectURL(file);
+
+					const a = document.createElement('a');
+					a.setAttribute('download', file.name);
+					a.setAttribute('href', link);
+					a.click();
+				};
+
+				const exportJson = (data) => {
+					const object = {
+						...data,
+						...exportMetadata
+					};
+					//console.log(object);
+
+					const file = new File([JSON.stringify(object, undefined, '\t')], (data.char_name || data.name || 'character') + '.json', { type: 'application/json;charset=utf-8' });
+					//console.log(file);
+
+					exportFile(file);
+				};
+
+				const exportPng = async (data) => {
+					const object = {
+						...data,
+						...exportMetadata
+					};
+					//console.log(object);
+
+					const json = JSON.stringify(object, undefined, '\t');
+					//console.log(json);
+
+					const request = await fetch(document.getElementById('edit-image').src);
+					const blob = await request.blob();
+					//console.log(blob);
+
+					const png = Png.Generate(await blob.arrayBuffer(), json);
+					//console.log(png);
+
+					const file = new File([png], (data.char_name || data.name || 'character') + '.tab.png', { type: 'image/png' });
+					//console.log(file);
+
+					exportFile(file);
+				};
+
+				document.getElementById('export-json').addEventListener('click', () => {
 					try {
-						const object = {
-							char_name: document.getElementById('edit-name').value.trim() || null,
-							char_persona: document.getElementById('edit-personality').value.trim() || null,
-							world_scenario: document.getElementById('edit-scenario').value.trim() || null,
-							char_greeting: document.getElementById('edit-greeting').value.trim() || null,
-							example_dialogue: document.getElementById('edit-examples').value.trim() || null,
-							metadata: {
-								version: 1,
-								created: Date.now(),
-								modified: Date.now(),
-								source: null
-							},
-							tool: {
-								name: 'AI Character Editor',
-								version: '0.2.1',
-								url: 'https://zoltanai.github.io/character-editor/'
-							}
-						};
-						//console.log(object);
+						exportJson({
+							...exportGradio(),
+							...exportTavern()
+						});
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
 
-						const file = new File([JSON.stringify(object, undefined, '\t')], (object.char_name || 'character') + '.pyg.json', { type: 'application/json;charset=utf-8' });
-						//console.log(file);
+				document.getElementById('export-json-gradio').addEventListener('click', e => {
+					e.preventDefault();
 
-						const link = window.URL.createObjectURL(file);
-						//console.log(link);
+					try {
+						exportJson(exportGradio());
+					} catch (ex) {
+						Exception.show(ex);
+					}
+				});
 
-						const a = document.createElement('a');
-						a.setAttribute('download', file.name);
-						a.setAttribute('href', link);
-						a.click();
+				document.getElementById('export-json-tavern').addEventListener('click', e => {
+					e.preventDefault();
+
+					try {
+						exportJson(exportTavern());
 					} catch (ex) {
 						Exception.show(ex);
 					}
@@ -1124,47 +1234,7 @@
 
 				document.getElementById('export-png').addEventListener('click', async () => {
 					try {
-						const object = {
-							name: document.getElementById('edit-name').value.trim() || null,
-							description: document.getElementById('edit-description').value.trim() || null,
-							personality: document.getElementById('edit-personality').value.trim() || null,
-							scenario: document.getElementById('edit-scenario').value.trim() || null,
-							first_mes: document.getElementById('edit-greeting').value.trim() || null,
-							mes_example: document.getElementById('edit-examples').value.trim() || null,
-							metadata: {
-								version: 1,
-								created: Date.now(),
-								modified: Date.now(),
-								source: null
-							},
-							tool: {
-								name: 'AI Character Editor',
-								version: '0.2.1',
-								url: 'https://zoltanai.github.io/character-editor/'
-							}
-						};
-						//console.log(object);
-
-						const json = JSON.stringify(object, undefined, '\t');
-						//console.log(json);
-
-						const request = await fetch(document.getElementById('edit-image').src);
-						const blob = await request.blob();
-						//console.log(blob);
-
-						const png = Png.Generate(await blob.arrayBuffer(), json);
-						//console.log(png);
-
-						const file = new File([png], (object.name || 'character') + '.card.png', { type: 'image/png' });
-						//console.log(file);
-
-						const link = window.URL.createObjectURL(file);
-						//console.log(link);
-
-						const a = document.createElement('a');
-						a.setAttribute('download', file.name);
-						a.setAttribute('href', link);
-						a.click();
+						await exportPng(exportTavern());
 					} catch (ex) {
 						Exception.show(ex);
 					}
