@@ -5,7 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<meta name="application-name" content="AI Character Editor">
 		<meta name="description" content="Create, edit and convert AI character files for CharacterAI, Pygmalion, KoboldAI and TavernAI">
-		<meta name="version" content="0.4.0">
+		<meta name="version" content="0.4.1">
 		<meta name="revision" content="2023-02-06">
 		<meta name="author" content="ZoltanAI">
 		<meta name="contact" content="Zoltan#8287 on Discord">
@@ -339,7 +339,7 @@
 					</div>
 
 					<div class="col text-end">
-						Version 0.4
+						Version 0.4.1
 					</div>
 				</div>
 			</div>
@@ -371,7 +371,7 @@
 			'use strict';
 
 			const APP = 'AI Character Editor';
-			const VER = '0.4.0';
+			const VER = '0.4.1';
 
 			class PngError extends Error {
 				constructor(message) {
@@ -1198,11 +1198,11 @@
 
 				const exportGradio = () => {
 					return {
-						char_name: document.getElementById('edit-name').value.trim() || null,
-						char_persona: document.getElementById('edit-personality').value.trim() || null,
-						world_scenario: document.getElementById('edit-scenario').value.trim() || null,
-						char_greeting: document.getElementById('edit-greeting').value.trim() || null,
-						example_dialogue: document.getElementById('edit-examples').value.trim() || null
+						char_name: document.getElementById('edit-name').value.trim() || "",
+						char_persona: document.getElementById('edit-personality').value.trim() || "",
+						world_scenario: document.getElementById('edit-scenario').value.trim() || "",
+						char_greeting: document.getElementById('edit-greeting').value.trim() || "",
+						example_dialogue: document.getElementById('edit-examples').value.trim() || ""
 					};
 				};
 
